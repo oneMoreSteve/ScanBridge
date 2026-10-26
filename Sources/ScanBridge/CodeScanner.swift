@@ -1,13 +1,15 @@
 #if os(iOS)
 import CoreGraphics
+import Combine
 import Foundation
-import Observation
 import os
 
 /// Scans barcodes and QR codes, or only shows the camera with `ScannerConfiguration.lite()`.
 ///
 /// On a device it uses the built-in camera. In the iOS Simulator, which has no camera, it receives
 /// the Mac's camera from `scanbridge-host` (run `swift run scanbridge-host` in the package folder).
+///
+/// In SwiftUI, own it with `@StateObject`.
 ///
 /// ```swift
 /// let scanner = CodeScanner(configuration: .init(symbologies: [.qr, .ean13]))
@@ -17,25 +19,24 @@ import os
 /// }
 /// ```
 @MainActor
-@Observable
-public final class CodeScanner {
+public final class CodeScanner: ObservableObject {
     public let configuration: ScannerConfiguration
 
-    public private(set) var state: ScannerState = .idle
+    @Published public private(set) var state: ScannerState = .idle
 
     /// The most recent code reported (after duplicate suppression).
-    public private(set) var lastScannedCode: ScannedCode?
+    @Published public private(set) var lastScannedCode: ScannedCode?
 
     /// While paused the camera keeps running but no code is reported,
     /// e.g. while the app shows the result of the previous scan.
-    public var isPaused = false
+    @Published public var isPaused = false
 
-    @ObservationIgnored private let backend: any ScannerBackend
-    @ObservationIgnored private var duplicateFilter: DuplicateFilter
-    @ObservationIgnored private var subscribers: [UUID: AsyncStream<ScannedCode>.Continuation] = [:]
+    private let backend: any ScannerBackend
+    private var duplicateFilter: DuplicateFilter
+    private var subscribers: [UUID: AsyncStream<ScannedCode>.Continuation] = [:]
     /// Incremented by `stop()` so an in-flight `start()` can tell it was cancelled.
-    @ObservationIgnored private var generation = 0
-    @ObservationIgnored var previewFrameHandler: (@MainActor (CGImage) -> Void)?
+    private var generation = 0
+    var previewFrameHandler: (@MainActor (CGImage) -> Void)?
 
     public convenience init(configuration: ScannerConfiguration = ScannerConfiguration()) {
         #if targetEnvironment(simulator)

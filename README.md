@@ -17,7 +17,7 @@ Aucune ligne de code spécifique au Simulateur dans l'app : `CodeScanner` choisi
 
 ## Prérequis
 
-- iOS 17+ (bibliothèque), macOS 14+ (outil hôte)
+- iOS 16+ (bibliothèque), macOS 14+ (outil hôte)
 - Xcode 16+ / Swift 6
 
 ## Installation
@@ -47,7 +47,7 @@ import ScanBridge
 import SwiftUI
 
 struct ScanScreen: View {
-    @State private var scanner = CodeScanner(
+    @StateObject private var scanner = CodeScanner(
         configuration: ScannerConfiguration(symbologies: [.qr, .ean13, .code128])
     )
     @State private var result: ScannedCode?
@@ -83,8 +83,8 @@ for await code in codes {
 | --- | --- |
 | `start()` / `stop()` | Démarre ou arrête la caméra. Idempotents. Les erreurs passent par `state`. |
 | `codes()` | `AsyncStream` de codes ; un flux indépendant par appel. |
-| `state` | `.idle`, `.starting`, `.running(source)`, `.waitingForHost`, `.failed(error)`. Observable. |
-| `lastScannedCode` | Dernier code remonté. Observable. |
+| `state` | `.idle`, `.starting`, `.running(source)`, `.waitingForHost`, `.failed(error)`. `@Published`. |
+| `lastScannedCode` | Dernier code remonté. `@Published`. |
 | `isPaused` | La caméra continue de tourner mais aucun code n'est remonté. |
 | `resetDuplicateSuppression()` | Fait remonter de nouveau le code actuellement visible. |
 
@@ -93,7 +93,7 @@ for await code in codes {
 Pour simplement afficher la caméra, sans aucune lecture de code :
 
 ```swift
-@State private var camera = CodeScanner(configuration: .lite())
+@StateObject private var camera = CodeScanner(configuration: .lite())
 
 var body: some View {
     CodeScannerView(scanner: camera)

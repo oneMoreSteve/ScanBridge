@@ -4,7 +4,7 @@ import SwiftUI
 /// Camera preview that starts the scanner when it appears and stops it when it disappears.
 ///
 /// ```swift
-/// @State private var scanner = CodeScanner(configuration: .init(symbologies: [.qr]))
+/// @StateObject private var scanner = CodeScanner(configuration: .init(symbologies: [.qr]))
 ///
 /// var body: some View {
 ///     CodeScannerView(scanner: scanner) { code in
@@ -16,7 +16,7 @@ import SwiftUI
 /// For the camera stream alone, without code detection:
 /// `CodeScannerView(scanner: CodeScanner(configuration: .lite()))`.
 public struct CodeScannerView: View {
-    private let scanner: CodeScanner
+    @ObservedObject private var scanner: CodeScanner
     private let showsStatus: Bool
     private let onScan: (@MainActor (ScannedCode) -> Void)?
 
@@ -81,13 +81,21 @@ private struct ScannerStatusOverlay: View {
     }
 
     private func message(title: String, systemImage: String, detail: String) -> some View {
-        ContentUnavailableView {
-            Label(title, systemImage: systemImage)
-        } description: {
+        VStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 44))
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.title2.bold())
             Text(detail)
+                .font(.callout)
+                .multilineTextAlignment(.center)
         }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(.white)
         .background(.black.opacity(0.7))
+        .accessibilityElement(children: .combine)
     }
 }
 #endif

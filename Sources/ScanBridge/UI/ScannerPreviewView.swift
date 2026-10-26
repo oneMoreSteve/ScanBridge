@@ -27,7 +27,9 @@ final class ScannerPreviewUIView: UIView {
     private weak var scanner: CodeScanner?
     private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
     private let frameLayer = CALayer()
-    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    /// `AVCaptureDevice.RotationCoordinator` on iOS 17+. Typed loosely because stored
+    /// properties cannot have a type newer than the deployment target.
+    private var rotationCoordinator: NSObject?
     private var rotationObservation: NSKeyValueObservation?
 
     override init(frame: CGRect) {
@@ -56,7 +58,7 @@ final class ScannerPreviewUIView: UIView {
             previewLayer.videoGravity = .resizeAspectFill
             layer.insertSublayer(previewLayer, below: frameLayer)
             videoPreviewLayer = previewLayer
-            if let device {
+            if #available(iOS 17, *), let device {
                 keepUpright(previewLayer, device: device)
             }
             setNeedsLayout()
@@ -87,6 +89,28 @@ final class ScannerPreviewUIView: UIView {
         videoPreviewLayer?.frame = bounds
         frameLayer.frame = bounds
         CATransaction.commit()
+
+        // iOS 16: the rotation coordinator does not exist; follow the interface orientation,
+        // which changes are always followed by a layout pass.
+        if #unavailable(iOS 17) {
+            matchInterfaceOrientation()
+        }
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if #unavailable(iOS 17) {
+            matchInterfaceOrientation()
+        }
+    }
+
+    private func matchInterfaceOrientation() {
+        guard let connection = videoPreviewLayer?.connection,
+              connection.isVideoOrientationSupported,
+              let interfaceOrientation = window?.windowScene?.interfaceOrientation,
+              let videoOrientation = AVCaptureVideoOrientation(interfaceOrientation)
+        else { return }
+        connection.videoOrientation = videoOrientation
     }
 
     private func display(_ image: CGImage) {
@@ -97,6 +121,7 @@ final class ScannerPreviewUIView: UIView {
     }
 
     /// Rotates the preview with the interface so the image is never sideways.
+    @available(iOS 17, *)
     private func keepUpright(_ previewLayer: AVCaptureVideoPreviewLayer, device: AVCaptureDevice) {
         let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: previewLayer)
         rotationCoordinator = coordinator
@@ -111,9 +136,21 @@ final class ScannerPreviewUIView: UIView {
         }
     }
 
+    @available(iOS 17, *)
     private func applyRotation(_ angle: CGFloat) {
         guard let connection = videoPreviewLayer?.connection, connection.isVideoRotationAngleSupported(angle) else { return }
         connection.videoRotationAngle = angle
+    }
+}
+private extension AVCaptureVideoOrientation {
+    init?(_ interfaceOrientation: UIInterfaceOrientation) {
+        switch interfaceOrientation {
+        case .portrait: self = .portrait
+        case .portraitUpsideDown: self = .portraitUpsideDown
+        case .landscapeLeft: self = .landscapeLeft
+        case .landscapeRight: self = .landscapeRight
+        default: return nil
+        }
     }
 }
 #endif

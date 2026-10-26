@@ -20,8 +20,15 @@ final class CameraCapture: NSObject, @unchecked Sendable {
     }
 
     static func availableDevices() -> [AVCaptureDevice] {
-        AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .continuityCamera, .external],
+        // The host only runs on macOS; the `#else` branch just keeps the package
+        // scheme buildable for iOS destinations.
+        #if os(macOS)
+        let deviceTypes: [AVCaptureDevice.DeviceType] = [.builtInWideAngleCamera, .continuityCamera, .external]
+        #else
+        let deviceTypes: [AVCaptureDevice.DeviceType] = [.builtInWideAngleCamera]
+        #endif
+        return AVCaptureDevice.DiscoverySession(
+            deviceTypes: deviceTypes,
             mediaType: .video,
             position: .unspecified
         ).devices
