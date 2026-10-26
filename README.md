@@ -28,7 +28,7 @@ Dans Xcode : **File › Add Package Dependencies…**, puis l'URL du dépôt. Aj
 Ou dans un `Package.swift` :
 
 ```swift
-.package(url: "https://github.com/<vous>/ScanBridge.git", from: "1.0.0")
+.package(url: "https://github.com/OneMoreSteve/ScanBridge.git", from: "1.0.0")
 ```
 
 Ajoutez la clé suivante à l'`Info.plist` de l'app (obligatoire, sans quoi iOS termine l'app) :
